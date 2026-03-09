@@ -25,10 +25,15 @@ end
 --- List Google Docs accessible to the user.
 --- Returns a list of { id = string, name = string } or nil on error.
 function M.list_docs()
+  local params = vim.json.encode({
+    q = "mimeType='application/vnd.google-apps.document'",
+    fields = "files(id,name)",
+    pageSize = 100,
+  })
+
   local raw, err = run({
     "drive.files.list",
-    "--q", "mimeType='application/vnd.google-apps.document'",
-    "--fields", "files(id,name)",
+    "--params", params,
   })
   if not raw then
     return nil, err
@@ -46,10 +51,14 @@ end
 --- Export a Google Doc as Markdown.
 --- Returns the markdown string or nil on error.
 function M.export_doc(file_id)
+  local params = vim.json.encode({
+    fileId = file_id,
+    mimeType = "text/markdown",
+  })
+
   local raw, err = run({
     "drive.files.export",
-    "--fileId", file_id,
-    "--mimeType", "text/markdown",
+    "--params", params,
   })
   return raw, err
 end
@@ -63,7 +72,7 @@ function M.create_doc(title)
 
   local raw, err = run({
     "docs.documents.create",
-    "--body", body,
+    "--json", body,
   })
   if not raw then
     return nil, err
@@ -84,9 +93,13 @@ end
 --- Uses docs.documents.batchUpdate to clear then insert.
 function M.update_doc(doc_id, text)
   -- Step 1: get current document to find content length
+  local params = vim.json.encode({
+    documentId = doc_id,
+  })
+
   local raw, err = run({
     "docs.documents.get",
-    "--documentId", doc_id,
+    "--params", params,
   })
   if not raw then
     return nil, err
@@ -138,8 +151,8 @@ function M.update_doc(doc_id, text)
   local body = vim.json.encode({ requests = requests })
   local result, update_err = run({
     "docs.documents.batchUpdate",
-    "--documentId", doc_id,
-    "--body", body,
+    "--params", vim.json.encode({ documentId = doc_id }),
+    "--json", body,
   })
 
   if not result then
