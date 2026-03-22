@@ -64,12 +64,17 @@ function M.open()
           local cache_dir = vim.fn.expand(config.cache_dir)
           vim.fn.mkdir(cache_dir, "p")
 
-          local filename = doc.name:gsub("[^%w%-_%. ]", ""):gsub("%s+", "_") .. ".md"
+          local filename = doc.name:gsub("[^%w%-_ ]", ""):gsub("%s+", "_") .. ".md"
+          -- Prevent path traversal: strip leading dots and any slashes
+          filename = filename:gsub("^%.+", ""):gsub("/", ""):gsub("\\", "")
+          if filename == "" or filename == ".md" then
+            filename = "untitled_" .. doc.id .. ".md"
+          end
           local filepath = cache_dir .. "/" .. filename
 
-          local f = io.open(filepath, "w")
+          local f, open_err = io.open(filepath, "w")
           if not f then
-            vim.notify("[gws-docs] could not write " .. filepath, vim.log.levels.ERROR)
+            vim.notify("[gws-docs] could not write " .. filepath .. ": " .. (open_err or ""), vim.log.levels.ERROR)
             return
           end
           f:write(md)
