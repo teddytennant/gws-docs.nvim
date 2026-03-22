@@ -1,10 +1,12 @@
 local M = {}
 
-local config = require("gws-docs").config
+local function get_config()
+  return require("gws-docs").config
+end
 
 local function run(args, opts)
   opts = opts or {}
-  local cmd = { config.gws_binary }
+  local cmd = { get_config().gws_binary }
   for _, a in ipairs(args) do
     table.insert(cmd, a)
   end
