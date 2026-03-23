@@ -22,13 +22,14 @@ function M.sync_current()
   local gws = require("gws-docs.gws")
   vim.notify("[gws-docs] syncing to Google Docs...", vim.log.levels.INFO)
 
-  local ok, err = gws.update_doc(doc_id, text)
-  if not ok then
-    vim.notify("[gws-docs] sync failed: " .. (err or ""), vim.log.levels.ERROR)
-    return
-  end
+  gws.update_doc(doc_id, text, function(ok, err)
+    if not ok then
+      vim.notify("[gws-docs] sync failed: " .. (err or ""), vim.log.levels.ERROR)
+      return
+    end
 
-  vim.notify("[gws-docs] synced successfully", vim.log.levels.INFO)
+    vim.notify("[gws-docs] synced successfully", vim.log.levels.INFO)
+  end)
 end
 
 --- Set up auto-sync on BufWritePost for files in the cache directory.

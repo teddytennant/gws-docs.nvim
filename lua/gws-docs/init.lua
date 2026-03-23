@@ -35,29 +35,31 @@ function M.setup(opts)
     local gws = require("gws-docs.gws")
     vim.notify("[gws-docs] creating doc: " .. title, vim.log.levels.INFO)
 
-    local doc, err = gws.create_doc(title)
-    if not doc then
-      vim.notify("[gws-docs] create failed: " .. (err or ""), vim.log.levels.ERROR)
-      return
-    end
-
-    -- Link current buffer file to the new doc
-    local filepath = vim.api.nvim_buf_get_name(0)
-    if filepath ~= "" then
-      M._file_map[filepath] = doc.id
-    end
-
-    -- Push current content
-    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-    local text = table.concat(lines, "\n")
-    if #text > 0 then
-      local ok, sync_err = gws.update_doc(doc.id, text)
-      if not ok then
-        vim.notify("[gws-docs] initial sync failed: " .. (sync_err or ""), vim.log.levels.WARN)
+    gws.create_doc(title, function(doc, err)
+      if not doc then
+        vim.notify("[gws-docs] create failed: " .. (err or ""), vim.log.levels.ERROR)
+        return
       end
-    end
 
-    vim.notify("[gws-docs] created doc: " .. doc.name .. " (" .. doc.id .. ")", vim.log.levels.INFO)
+      -- Link current buffer file to the new doc
+      local filepath = vim.api.nvim_buf_get_name(0)
+      if filepath ~= "" then
+        M._file_map[filepath] = doc.id
+      end
+
+      -- Push current content
+      local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+      local text = table.concat(lines, "\n")
+      if #text > 0 then
+        gws.update_doc(doc.id, text, function(ok, sync_err)
+          if not ok then
+            vim.notify("[gws-docs] initial sync failed: " .. (sync_err or ""), vim.log.levels.WARN)
+          end
+        end)
+      end
+
+      vim.notify("[gws-docs] created doc: " .. doc.name .. " (" .. doc.id .. ")", vim.log.levels.INFO)
+    end)
   end, { nargs = "?", desc = "Create a new Google Doc from current buffer" })
 
   -- Set up auto-sync
