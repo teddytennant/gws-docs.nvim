@@ -9,8 +9,47 @@ M.config = {
 -- Maps filepath -> Google Doc ID for open documents
 M._file_map = {}
 
+--- Path to the persisted file map on disk.
+local function file_map_path()
+  return vim.fn.expand(M.config.cache_dir) .. "/.file_map.json"
+end
+
+--- Load the file map from disk (call after config is set).
+function M._load_file_map()
+  local path = file_map_path()
+  local f = io.open(path, "r")
+  if not f then
+    return
+  end
+  local raw = f:read("*a")
+  f:close()
+  if raw and #raw > 0 then
+    local ok, decoded = pcall(vim.json.decode, raw)
+    if ok and type(decoded) == "table" then
+      M._file_map = decoded
+    end
+  end
+end
+
+--- Save the file map to disk.
+function M._save_file_map()
+  local cache_dir = vim.fn.expand(M.config.cache_dir)
+  vim.fn.mkdir(cache_dir, "p")
+  local path = file_map_path()
+  local f, err = io.open(path, "w")
+  if not f then
+    vim.notify("[gws-docs] could not persist file map: " .. (err or ""), vim.log.levels.WARN)
+    return
+  end
+  f:write(vim.json.encode(M._file_map))
+  f:close()
+end
+
 function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
+
+  -- Restore file map from previous session
+  M._load_file_map()
 
   -- :GwsDocs - open Telescope picker
   vim.api.nvim_create_user_command("GwsDocs", function()
@@ -45,6 +84,7 @@ function M.setup(opts)
       local filepath = vim.api.nvim_buf_get_name(0)
       if filepath ~= "" then
         M._file_map[filepath] = doc.id
+        M._save_file_map()
       end
 
       -- Push current content

@@ -80,9 +80,10 @@ function M.open()
               f:write(md)
               f:close()
 
-              -- Store doc id mapping
+              -- Store doc id mapping and persist to disk
               local meta = require("gws-docs")
               meta._file_map[filepath] = doc.id
+              meta._save_file_map()
 
               vim.cmd("edit " .. vim.fn.fnameescape(filepath))
               vim.notify("[gws-docs] opened " .. doc.name, vim.log.levels.INFO)
